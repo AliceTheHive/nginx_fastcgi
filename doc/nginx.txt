@@ -1,0 +1,4 @@
+1、iptables开启nginx 80端口权限
+	iptables -A INPUT -p tcp --dport 80 -j ACCEPT			#允许访问本机80端口
+	iptables -A INPUT -p tcp -s 127.0.0.1 -j ACCEPT			#允许本地回环接口，即允许本机访问本机，本机作为数据包源IP地址
+	iptables -A INPUT -p tcp -s ${IP} -j ACCEPT				#${IP}需填写nginx所在机器IP地址，允许本机作为数据包源IP地址
