@@ -20,14 +20,15 @@
 #include <sys/syscall.h>
 
 
+#define APPNAMELENGTH		256
 #define LOGSIZE				(10 * 1024)
 #define LOGFILENAMELENGTH	1024
 
 
 int __log_level__ = 6;
 static int logfd = -1;
-static std::string appname = "";
-static std::string log_dir = "./log";
+static char appname[APPNAMELENGTH = "";
+static char log_dir[LOGFILENAMELENGTH] = "./log";
 static int logday = 0;
 static int noconsole = 0;
 
@@ -45,7 +46,7 @@ static void clean_logfd(void)
 	}
 }
 
-void _init_log_(const std::string &app, const std::string &dir)
+void _init_log_(const char *app, const char *dir)
 {
 	appname = app;
 
@@ -89,7 +90,7 @@ void _write_log_(int level
 				 , const std::string &filename
 				 , const std::string &funcname
 				 , int lineno
-				 , const std::string format
+				 , const char *format
 				 , ...)
 {
 	// save errno
@@ -97,12 +98,19 @@ void _write_log_(int level
 	int off = 0;
 	char buf[LOGSIZE];
 	char logfile[LOGFILENAMELENGTH];
+	
 	if(appname.empty())
+	{
 		return;
+	}
 	if(level < 0)
+	{
 		level = 0;
+	}
 	else if(level > 7)
+	{
 		level = 7;
+	}
 
 	struct tm tm;
 	time_t now = time(NULL);
@@ -131,7 +139,9 @@ void _write_log_(int level
 					   , funcname);
 	}
 	if(off >= LOGSIZE)
+	{
 		off = LOGSIZE - 1;
+	}
 
 	int today = tm.tm_year * 1000 + tm.tm_yday;
 	if(logfd >= 0 && today != logday)
@@ -164,7 +174,9 @@ void _write_log_(int level
 	va_end(ap);
 
 	if(off >= LOGSIZE)
+	{
 		off = LOGSIZE - 1;
+	}
 	if(buf[off - 1] != '\n')
 	{
 		buf[off++] = '\n';
@@ -188,21 +200,26 @@ void _write_log_(int level
 	}
 }
 
-void _write_stderr_(const char *fmt, ...) {
-	int len, size, errno_save;
-	char buf[4 * 256];
+void _write_stderr_(const char *fmt, ...)
+{
+	int len = 0;
+	int errno_save = errno;
+	char buf[LOGSIZE];
+
 	va_list args;
-
-	errno_save = errno;
-	len = 0; /* length of output buffer */
-	size = 4 * 256; /* size of output buffer */
-
 	va_start(args, fmt);
-	len += vsnprintf(buf, size, fmt, args);
+	errno = errno_save;
+	len += vsnprintf(buf, LOGSIZE, fmt, args);
 	va_end(args);
 
-	buf[len++] = '\n';
+	if(len >= LOGSIZE)
+	{
+		len = LOGSIZE -1;
+	}
+	if(buf[len - 1] != '\n')
+	{
+		buf[len++] = '\n';
+	}
 
 	write(STDERR_FILENO, buf, len);
-	errno = errno_save;
 }

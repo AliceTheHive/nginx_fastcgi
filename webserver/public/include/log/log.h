@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <string>
 
 extern int __log_level__;
 
@@ -27,10 +26,18 @@ extern int __log_level__;
 #define log_debug(fmt, args...)		do{ if(__log_level__>=7)log_generic(7, fmt, ##args); } while(0)
 
 
-void _init_log_(const std::string &app, const std::string &dir);
+void _init_log_(const char *app, const char *dir);
 void _set_log_level_(int l);
-void _write_log_(int, const char*, const char *, int, const char *, ...) __attribute__((format(printf, 5, 6)));
-void _write_stderr_(const char *fmt, ...);
+
+void _write_log_(int level
+				 , const char *filename
+				 , const char *funcname
+				 , int lineno
+				 , const char *, ...)
+	__attribute__((format(printf, 5, 6)));
+
+void _write_stderr_(const char *fmt, ...)
+	__attribute__((format(printf, 1, 2)));
 
 
 #endif // __LOG_H__
