@@ -1,14 +1,8 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#include <libgen.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <stdio.h>
 
 
 extern int __log_level__;
@@ -28,6 +22,7 @@ extern int __log_level__;
 
 void _init_log_(const char *app, const char *dir);
 void _set_log_level_(int l);
+void _set_log_console_(bool isconsole);
 
 void _write_log_(int level
 				 , const char *filename

@@ -15,9 +15,14 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
+#include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <sys/syscall.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
 #define APPNAMELENGTH		256
@@ -27,8 +32,8 @@
 
 int __log_level__ = 6;
 static int logfd = -1;
-static char appname[APPNAMELENGTH = "";
-static char log_dir[LOGFILENAMELENGTH] = "./log";
+static char appname[APPNAMELENGTH] = "";
+static char log_dir[LOGFILENAMELENGTH] = "../log";
 static int logday = 0;
 static int noconsole = 0;
 
@@ -48,16 +53,16 @@ static void clean_logfd(void)
 
 void _init_log_(const char *app, const char *dir)
 {
-	appname = app;
+	strncpy(appname, app, sizeof(appname) - 1);
 
-	if(!dir.empty())
+	if(NULL != dir)
 	{
-		log_dir = dir;
+		strncpy(log_dir, dir, sizeof(log_dir) - 1);
 	}
-	mkdir(log_dir.c_str(), 0777);
+	mkdir(log_dir, 0777);
 	if(access(log_dir, W_OK | X_OK) < 0)
 	{
-		log_error("logdir [%s]: Not writable", log_dir.c_str());
+		log_error("logdir [%s]: Not writable", log_dir);
 	}
 
 	logfd = open("/dev/null", O_WRONLY);
@@ -71,10 +76,12 @@ void _init_log_(const char *app, const char *dir)
 void _set_log_level_(int l)
 {
 	if(l >= 0)
+	{
 		__log_level__ = l >= 3 ? l : 3;
+	}
 }
 
-void _set_log_console(bool isconsole)
+void _set_log_console_(bool isconsole)
 {
 	if(isconsole)
 	{
@@ -87,8 +94,8 @@ void _set_log_console(bool isconsole)
 }
 
 void _write_log_(int level
-				 , const std::string &filename
-				 , const std::string &funcname
+				 , const char *filename
+				 , const char *funcname
 				 , int lineno
 				 , const char *format
 				 , ...)
@@ -99,7 +106,7 @@ void _write_log_(int level
 	char buf[LOGSIZE];
 	char logfile[LOGFILENAMELENGTH];
 	
-	if(appname.empty())
+	if(0 == appname[0])
 	{
 		return;
 	}
@@ -116,7 +123,7 @@ void _write_log_(int level
 	time_t now = time(NULL);
 	localtime_r(&now, &tm);
 
-	if(filename.empty())
+	if(NULL == filename)
 	{
 		off = snprintf(buf, LOGSIZE, "<%d>[%02d:%02d:%02d] pid[%d]: "
 					   , level
@@ -127,7 +134,7 @@ void _write_log_(int level
 	}
 	else
 	{
-		filename = basename(const_cast<char *>(filename.c_str()));
+		filename = basename((char *)filename);
 		off = snprintf(buf, LOGSIZE, "<%d>[%02d:%02d:%02d] pid[%d]: %s(%d)[%s]: "
 					   , level
 					   , tm.tm_hour
