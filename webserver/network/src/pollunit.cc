@@ -1,12 +1,16 @@
 #include "pollunit.h"
 
+#include <fcntl.h>
+
+#include "pollpool.h"
+
 
 namespace Network
 {
-	CPollUnit::CPollUnit(CPollPool *owner /* = NULL */, int32_t fd /* = -1 */)
+	CPollUnit::CPollUnit()
 	{
-		m_owner = owner;
-		m_fd = fd;
+		m_owner = NULL;
+		m_fd = -1;
 		m_events = 0;
 	}
 
@@ -55,6 +59,104 @@ namespace Network
 	void CPollUnit::DisableRDHup()
 	{
 		m_events &= ~EPOLLRDHUP;
+	}
+
+	void CPollUnit::EnableET()
+	{
+		m_events |= EPOLLET;
+	}
+
+	void CPollUnit::DisableET()
+	{
+		m_events &= ~EPOLLET;
+	}
+
+	void CPollUnit::EnableOneShot()
+	{
+		m_events |= EPOLLONESHOT;
+	}
+
+	void CPollUnit::DisableOneShot()
+	{
+		m_events &= ~EPOLLONESHOT;
+	}
+
+	int32_t CPollUnit::SetCloseExec()
+	{
+		int flags = fcntl(m_fd, F_GETFD);
+		if(-1 == flags)
+		{
+			return -1;
+		}
+
+		flags |= FD_CLOEXEC;
+		if(-1 == fcntl(m_fd, F_SETFD, flags))
+		{
+			return -1;
+		}
+
+		return 0;
+	}
+
+	int32_t CPollUnit::ClearCloseExec()
+	{
+		int flags = fcntl(m_fd, F_GETFD);
+		if(-1 == flags)
+		{
+			return -1;
+		}
+
+		flags &= ~FD_CLOEXEC;
+		if(-1 == fcntl(m_fd, F_SETFD, flags))
+		{
+			return -1;
+		}
+
+		return 0;
+	}
+
+	int32_t CPollUnit::SetNonBlock()
+	{
+		return SetFlag(O_NONBLOCK);
+	}
+
+	int32_t CPollUnit::ClearNonBlock()
+	{
+		return ClearFlag(O_NONBLOCK);
+	}
+
+	int32_t CPollUnit::SetFlag(int option)
+	{
+		int flags = fcntl(m_fd, F_GETFL);
+		if(-1 == flags)
+		{
+			return -1;
+		}
+
+		flags |= option;
+		if(-1 == fcntl(m_fd, F_SETFL, flags))
+		{
+			return -1;
+		}
+
+		return 0;
+	}
+
+	int32_t CPollUnit::ClearFlag(int option)
+	{
+		int flags = fcntl(m_fd, F_GETFL);
+		if(-1 == flags)
+		{
+			return -1;
+		}
+
+		flags &= ~option;
+		if(-1 == fcntl(m_fd, F_SETFL, flags))
+		{
+			return -1;
+		}
+
+		return 0;
 	}
 
 	CPollPool *CPollUnit::GetOwner()
