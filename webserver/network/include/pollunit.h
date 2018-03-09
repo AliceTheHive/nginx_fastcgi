@@ -32,20 +32,26 @@ namespace Network
 		void DisableOneShot();
 		int32_t SetCloseExec();
 		int32_t ClearCloseExec();
-		int32_t SetNonBlock();
-		int32_t ClearNonBlock();
 		int32_t SetFlag(int option);
 		int32_t ClearFlag(int option);
+		int32_t SetNonBlock();
+		int32_t ClearNonBlock();
 		CPollPool *GetOwner();
 		int32_t GetFD();
 		uint32_t GetEvents();
 		epoll_event *GetEpollEvent();
 
 	public:
+		void Close();
+
+	public:
+		virtual void HangupNotify();
+		virtual void RDHupNotify();
+		virtual void Clear();
+		
+	public:
 		virtual void InputNotify() = 0;
 		virtual void OutputNotify() = 0;
-		virtual void HangupNotify() = 0;
-		virtual void RDHupNotify() = 0;
 			
 	protected:
 		CPollPool *m_owner;

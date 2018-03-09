@@ -2,6 +2,8 @@
 
 #include <fcntl.h>
 
+#include <sys/socket.h>
+
 #include "pollpool.h"
 
 
@@ -115,16 +117,6 @@ namespace Network
 		return 0;
 	}
 
-	int32_t CPollUnit::SetNonBlock()
-	{
-		return SetFlag(O_NONBLOCK);
-	}
-
-	int32_t CPollUnit::ClearNonBlock()
-	{
-		return ClearFlag(O_NONBLOCK);
-	}
-
 	int32_t CPollUnit::SetFlag(int option)
 	{
 		int flags = fcntl(m_fd, F_GETFL);
@@ -159,6 +151,16 @@ namespace Network
 		return 0;
 	}
 
+	int32_t CPollUnit::SetNonBlock()
+	{
+		return SetFlag(O_NONBLOCK);
+	}
+
+	int32_t CPollUnit::ClearNonBlock()
+	{
+		return ClearFlag(O_NONBLOCK);
+	}
+
 	CPollPool *CPollUnit::GetOwner()
 	{
 		return m_owner;
@@ -179,5 +181,30 @@ namespace Network
 		m_epoll_event.events = m_events;
 		m_epoll_event.fd = m_fd;
 		return (&m_epoll_event);
+	}
+
+	void CPollUnit::Close()
+	{
+		Clear();
+		
+		if(m_fd > 0)
+		{
+			shutdown(m_fd, SHUT_WR);
+		}
+	}
+
+	virtual void CPollUnit::HangupNotify()
+	{
+		delete this;
+	}
+
+	virtual void CPollUnit::RDHupNotify()
+	{
+		delete this;
+	}
+
+	virtual void CPollUnit::Clear()
+	{
+		
 	}
 };

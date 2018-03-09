@@ -47,6 +47,17 @@ namespace Network
 		return 0;
 	}
 
+	void CPollPool::UnInit()
+	{
+		for(POLLUNIT_MAP::iterator pit = m_poll_units.begin(); pit != m_poll_units.end(); ++ pit)
+		{
+			unit->Close();
+			delete unit;
+		}
+
+		m_poll_units.clear();
+	}
+
 	int32_t CPollPool::Attach(CPollUnit *unit)
 	{
 		if(m_poll_units.size() >= m_epoll_size || NULL == unit)
@@ -60,7 +71,7 @@ namespace Network
 			return -1;
 		}
 
-		if(0 != (epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, unit->GetFD(), event)))
+		if(0 != (EpollCtl(EPOLL_CTL_ADD, unit)))
 		{
 			log_error("Epoll EPOLL_CTL_ADD fd [%d] failed.", unit->GetFD());
 			return -1;
@@ -84,7 +95,7 @@ namespace Network
 			return -1;
 		}
 
-		if(0 != (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, unit->GetFD(), unit->GetEpollEvent())))
+		if(0 != (EpollCtl(EPOLL_CTL_DEL, unit)))
 		{
 			log_error("Epoll EPOLL_CTL_DEL fd [%d] failed.", unit->GetFD());
 			return -1;
@@ -148,6 +159,12 @@ namespace Network
 			if(one_event->events & (EPOLLHUP | EPOLLERR))
 			{
 				unit->HangupNotify();
+				continue;
+			}
+
+			if(one_event->events & EPOLLRDHUP)
+			{
+				unit->RDHupNotify();
 				continue;
 			}
 			
