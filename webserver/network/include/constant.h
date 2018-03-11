@@ -9,6 +9,7 @@ namespace Network
 {
 	const uint64_t kDefaultBufferLength = 1024 * 1024;
 	const uint64_t kDefaultPollerSize = 4096;
+	const uint32_t kDefaultIOVCount = 128;
 };
 
 

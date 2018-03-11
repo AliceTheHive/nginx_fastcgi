@@ -29,6 +29,7 @@ namespace Network
 		int32_t EpollCtl(int32_t op, CPollUnit *unit);
 		int32_t EpollCtl(int32_t op, CPollUnit *unit, epoll_event *ep_event);
 		int32_t EpollCtl(int32_t op, CPollUnit *unit, uint32_t events);
+		int32_t ModifyEvent(CPollUnit *unit);
 		int32_t EpollProcess(int32_t timeout = 3000);
 
 	private:

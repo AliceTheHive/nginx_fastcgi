@@ -139,6 +139,11 @@ namespace Network
 		return EpollCtl(op, unit);
 	}
 
+	int32_t CPollPool::ModifyEvent(CPollUnit *unit)
+	{
+		return EpollCtl(EPOLL_CTL_MOD, unit);
+	}
+
 	int32_t CPollPool::EpollProcess(int32_t timeout /* = 3000 */)
 	{
 		int32_t event_count = epoll_wait(m_epoll_fd, m_epoll_events, m_epoll_size, timeout);

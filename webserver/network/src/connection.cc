@@ -1,5 +1,7 @@
 #include "connection.h"
 
+#include <sys/uio.h>
+
 #include "constant.h"
 
 
@@ -103,8 +105,69 @@ namespace Network
 		} while(0);
 	}
 
-	virtual CConnection::OutputNotify()
+	virtual void CConnection::OutputNotify()
+	{
+		int64_t send_length = -1;
+		if(!m_send_buffers.empty())
+		{
+			uint32_t iov_count = 0;
+			int64_t iov_length = 0;
+			iovec iovs[kDefaultIOVIov_Count] = {'\0'};
+			for(CBuffers::iterator bit = m_send_buffers.begin(); (bit != m_send_buffers.end()) && (iov_count < kDefaultIOVCount); ++ bit)
+			{
+				iovs[iov_count].iov_base = (*bit)->GetData();
+				iovs[iov_count].iov_len = (*bit)->DataLength();
+				++ iov_count;
+				iov_length += (*bit)->DataLength();
+			}
+
+			if(iov_length > 0)
+			{
+				send_length = writev(m_fd, iovs, iov_count);
+				if(send_length > 0)
+				{
+					m_send_buffers.EraseFront(send_length);
+				}
+				else if(0 == send_length)
+				{
+					log_debug("writev data is zero.");
+					return;
+				}
+				else
+				{
+					if(EINTR == errno
+					   || EAGAIN == errno
+					   || EINPROGRESS == errno
+					   || EWOULDBLOCK == errno)
+					{
+						log_debug("writev this data next.");
+						return;
+					}
+					else
+					{
+						log_error("The connection [%d] writev data failed, errno [%d], strerror [%s].", m_fd, errno, strerror(errno));
+						delete this;
+						return;
+					}
+				}
+			}
+		}
+
+		if(m_send_buffers.empty())
+		{
+			EnableOutput();
+			m_owner->ModifyEvent(this);
+		}
+	}
+
+	virtual void CConnection::OnPacket(CPacket &packet)
 	{
 		
+	}
+
+	virtual void CConnection::OnDecodeError()
+	{
+		Close();
+		delete this;
 	}
 };
