@@ -29,7 +29,7 @@ namespace Network
 		virtual void OutputNotify();
 
 	public:
-		virtual void CreateConnection(int32_t fd) = 0;
+		virtual CConnection *CreateConnection(int32_t fd) = 0;
 
 	private:
 		CConnection *Accept();

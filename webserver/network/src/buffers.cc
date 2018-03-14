@@ -1,5 +1,7 @@
 #include "buffers.h"
 
+#include <string.h>
+
 #include "buffer.h"
 
 
@@ -71,9 +73,9 @@ namespace Network
 			cur_pos += (*it)->DataLength();
 			if(cur_pos > pos)
 			{
-				uint64_t offset = (pos > prev_pos) : (pos - prev_pos) : 0;
+				uint64_t offset = (pos > prev_pos) ? (pos - prev_pos) : 0;
 				uint64_t copy_length = (cur_pos < end_pos) ? (cur_pos - prev_pos - offset) : (end_pos - prev_pos - offset);
-				memcpy(static_cast<uint8_t *>(data) + real_length, static_cast<uint8_t *>((*it)->GetData() + offset), copy_length);
+				memcpy(static_cast<uint8_t *>(data) + real_length, static_cast<uint8_t *>((*it)->GetData()) + offset, copy_length);
 				real_length += copy_length;
 			}
 

@@ -2,6 +2,8 @@
 #define __BUFFER_H__
 
 
+#include <stdint.h>
+
 #include "constant.h"
 
 

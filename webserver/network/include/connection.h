@@ -2,6 +2,8 @@
 #define __CONNECTION_H__
 
 
+#include <string>
+
 #include "buffers.h"
 #include "packet.h"
 #include "pollunit.h"

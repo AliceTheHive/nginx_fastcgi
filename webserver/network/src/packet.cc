@@ -8,7 +8,7 @@ namespace Network
 		
 	}
 
-	virtual CPacket::~CPacket()
+	CPacket::~CPacket()
 	{
 		
 	}

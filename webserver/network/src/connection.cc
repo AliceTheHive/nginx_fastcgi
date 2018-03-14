@@ -1,8 +1,16 @@
 #include "connection.h"
 
+#include <errno.h>
+#include <string.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/uio.h>
 
 #include "constant.h"
+#include "buffer.h"
+#include "log.h"
+#include "pollpool.h"
 
 
 namespace Network
@@ -22,7 +30,7 @@ namespace Network
 		{
 			sockaddr_in local_addr;
 			socklen_t local_length = sizeof(local_addr);
-			if(0 == getsockname(m_fd, static_cast<sockaddr *>(&local_addr), &local_length))
+			if(0 == getsockname(m_fd, reinterpret_cast<sockaddr *>(&local_addr), &local_length))
 			{
 				m_local_address = inet_ntoa(local_addr.sin_addr);
 				m_local_port = ntohs(local_addr.sin_port);
@@ -30,7 +38,7 @@ namespace Network
 
 			sockaddr_in remote_addr;
 			socklen_t remote_length = sizeof(remote_addr);
-			if(0 == getpeername(m_fd, static_cast<sockaddr *>(&remote_addr), &remote_length))
+			if(0 == getpeername(m_fd, reinterpret_cast<sockaddr *>(&remote_addr), &remote_length))
 			{
 				m_remote_address = inet_ntoa(remote_addr.sin_addr);
 				m_remote_port = ntohs(remote_addr.sin_port);
@@ -38,12 +46,12 @@ namespace Network
 		}
 	}
 
-	virtual CConnection::~CConnection()
+	CConnection::~CConnection()
 	{
 		
 	}
 
-	virtual void CConnection::InputNotify()
+	void CConnection::InputNotify()
 	{
 		uint8_t buff[kDefaultBufferLength] = {'\0'};
 		int64_t recv_length = -1;
@@ -105,14 +113,14 @@ namespace Network
 		} while(0);
 	}
 
-	virtual void CConnection::OutputNotify()
+	void CConnection::OutputNotify()
 	{
 		int64_t send_length = -1;
 		if(!m_send_buffers.empty())
 		{
 			uint32_t iov_count = 0;
 			int64_t iov_length = 0;
-			iovec iovs[kDefaultIOVIov_Count] = {'\0'};
+			iovec iovs[kDefaultIOVCount] = {{'\0', 0}};
 			for(CBuffers::iterator bit = m_send_buffers.begin(); (bit != m_send_buffers.end()) && (iov_count < kDefaultIOVCount); ++ bit)
 			{
 				iovs[iov_count].iov_base = (*bit)->GetData();
@@ -156,16 +164,16 @@ namespace Network
 		if(m_send_buffers.empty())
 		{
 			EnableOutput();
-			m_owner->ModifyEvent(this);
+			GetOwner()->ModifyEvent(this);
 		}
 	}
 
-	virtual void CConnection::OnPacket(CPacket &packet)
+	void CConnection::OnPacket(CPacket &packet)
 	{
 		
 	}
 
-	virtual void CConnection::OnDecodeError()
+	void CConnection::OnDecodeError()
 	{
 		Close();
 		delete this;

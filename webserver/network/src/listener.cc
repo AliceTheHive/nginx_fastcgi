@@ -1,9 +1,18 @@
 #include "listener.h"
 
+#include <errno.h>
+#include <string.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 #include "connection.h"
+#include "log.h"
+#include "pollpool.h"
 
 
 namespace Network
@@ -38,20 +47,29 @@ namespace Network
 
 		sockaddr_in my_addr;
 		socklen_t length = static_cast<socklen_t>(sizeof(my_addr));
-		if(0 == getsockname(m_fd, static_cast<sockaddr *>(&my_addr), &length))
+		if(0 == getsockname(m_fd, reinterpret_cast<sockaddr *>(&my_addr), &length))
 		{
 			m_address = inet_ntoa(my_addr.sin_addr);
 			m_port = ntohs(my_addr.sin_port);
 		}
 
-		getsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, static_cast<void *>(&m_rcvbuf_size), sizeof(m_rcvbuf_size));
-		getsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, static_cast<void *>(&m_sndbuf_size), sizeof(m_sndbuf_size));
-		getsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&m_reuse), sizeof(m_reuse));
-		getsockopt(m_fd, SOL_TCP, TCP_NODELAY, static_cast<void *>(&m_nodelay), sizeof(m_nodelay));
-		getsockopt(m_fd, SOL_TCP, TCP_DEFER_ACCEPT, static_cast<void *>(&m_defer_accept), sizeof(m_defer_accept));
+		length = static_cast<socklen_t>(sizeof(m_rcvbuf_size));
+		getsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, static_cast<void *>(&m_rcvbuf_size), &length);
+		
+		length = static_cast<socklen_t>(sizeof(m_sndbuf_size));
+		getsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, static_cast<void *>(&m_sndbuf_size), &length);
+
+		length = static_cast<socklen_t>(sizeof(m_reuse));
+		getsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&m_reuse), &length);
+		
+		length = static_cast<socklen_t>(sizeof(m_nodelay));
+		getsockopt(m_fd, SOL_TCP, TCP_NODELAY, static_cast<void *>(&m_nodelay), &length);
+
+		length = static_cast<socklen_t>(sizeof(m_defer_accept));
+		getsockopt(m_fd, SOL_TCP, TCP_DEFER_ACCEPT, static_cast<void *>(&m_defer_accept), &length);
 	}
 
-	virtual CListener::~CListener()
+	CListener::~CListener()
 	{
 		m_address = "";
 		m_port = 0;
@@ -81,7 +99,7 @@ namespace Network
 		int32_t result = 0;
 		if(m_reuse > 0)
 		{
-			result = setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), sizeof(reuseaddr));
+			result = setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&m_reuse), sizeof(m_reuse));
 			if(-1 == result)
 			{
 				log_error("The fd [%d] setsockopt SO_REUSEADDR failed, errno [%d], strerror [%s].", m_fd, errno, strerror(errno));
@@ -115,10 +133,10 @@ namespace Network
 			}
 		}
 		
-		result = bind(m_fd, static_cast<sockaddr *>(&listen_addr), sizeof(listen_addr));
+		result = bind(m_fd, reinterpret_cast<sockaddr *>(&listen_addr), sizeof(listen_addr));
 		if(-1 == result)
 		{
-			log_error("The fd [%d] bind failed, errno [%d], strerror [%s].", m_fd, errno, strerror);
+			log_error("The fd [%d] bind failed, errno [%d], strerror [%s].", m_fd, errno, strerror(errno));
 			close(m_fd);
 			m_fd = -1;
 			return -1;
@@ -164,7 +182,7 @@ namespace Network
 	{
 		sockaddr_in remote_addr;
 		socklen_t sock_length = sizeof(remote_addr);
-		int32_t new_fd = accept(m_fd, static_cast<void *>(&remote_addr), &sock_length);
+		int32_t new_fd = accept(m_fd, reinterpret_cast<sockaddr *>(&remote_addr), &sock_length);
 
 		CConnection *connection = NULL;
 		if(-1 == new_fd)
@@ -194,7 +212,7 @@ namespace Network
 		return connection;
 	}
 
-	virtual void CListener::InputNotify()
+	void CListener::InputNotify()
 	{
 		CConnection *connection = this->Accept();
 		if(NULL == connection)
@@ -216,7 +234,7 @@ namespace Network
 		}
 	}
 
-	virtual void CListener::OutputNotify()
+	void CListener::OutputNotify()
 	{
 		
 	}

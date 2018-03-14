@@ -11,7 +11,7 @@ Config::Config(const std::string path)
 bool Config::Load()
 {
 	Json::Reader reader;
-	ifstream file(file_path.c_str());
+	std::ifstream file(file_path.c_str());
 	if (file)
 		return reader.parse(file, *this);
 	else
@@ -33,7 +33,7 @@ bool Config::SaveAs(const std::string path)
 {
 	Json::StyledStreamWriter writer;
 
-	std::ofstream config_file(path.c_str(), ios::out | ios::trunc);
+	std::ofstream config_file(path.c_str(), std::ios::out | std::ios::trunc);
 	if (config_file)
 	{
 		writer.write(config_file, *this);

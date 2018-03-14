@@ -1,8 +1,11 @@
 #include "pollpool.h"
 
 #include <errno.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "log.h"
+#include "pollunit.h"
 
 
 namespace Network
@@ -51,6 +54,7 @@ namespace Network
 	{
 		for(POLLUNIT_MAP::iterator pit = m_poll_units.begin(); pit != m_poll_units.end(); ++ pit)
 		{
+			CPollUnit *unit = pit->second;
 			unit->Close();
 			delete unit;
 		}
@@ -119,7 +123,7 @@ namespace Network
 
 	int32_t CPollPool::EpollCtl(int32_t op, CPollUnit *unit)
 	{
-		return EpollCtl(op, unit->GetFD(), unit->GetEpollEvent())
+		return EpollCtl(op, unit->GetFD(), unit->GetEpollEvent());
 	}
 
 	int32_t CPollPool::EpollCtl(int32_t op, CPollUnit *unit, epoll_event *ep_event)
@@ -149,7 +153,7 @@ namespace Network
 		int32_t event_count = epoll_wait(m_epoll_fd, m_epoll_events, m_epoll_size, timeout);
 		for(int32_t event_index = 0; event_index < event_count; ++ event_index)
 		{
-			epoll_event *one_event = m_epoll_events[event_index];
+			epoll_event *one_event = &m_epoll_events[event_index];
 			POLLUNIT_MAP::iterator one_unit_it = m_poll_units.find(one_event->data.fd);
 			if(m_poll_units.end() == one_unit_it)
 			{

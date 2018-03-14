@@ -1,6 +1,7 @@
 #include "pollunit.h"
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 
@@ -179,7 +180,7 @@ namespace Network
 	epoll_event *CPollUnit::GetEpollEvent()
 	{
 		m_epoll_event.events = m_events;
-		m_epoll_event.fd = m_fd;
+		m_epoll_event.data.fd = m_fd;
 		return (&m_epoll_event);
 	}
 
@@ -193,17 +194,17 @@ namespace Network
 		}
 	}
 
-	virtual void CPollUnit::HangupNotify()
+	void CPollUnit::HangupNotify()
 	{
 		delete this;
 	}
 
-	virtual void CPollUnit::RDHupNotify()
+	void CPollUnit::RDHupNotify()
 	{
 		delete this;
 	}
 
-	virtual void CPollUnit::Clear()
+	void CPollUnit::Clear()
 	{
 		
 	}
