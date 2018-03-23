@@ -51,6 +51,18 @@ namespace Network
 		
 	}
 
+	int64_t CConnection::SendPacket(const CPacket &packet)
+	{
+		int64_t encode_length = packet.Encode(m_send_buffers);
+		if(NULL != GetOwner())
+		{
+			EnableOutput();
+			GetOwner()->ModifyEvent(this);
+		}
+
+		return encode_length;
+	}
+
 	void CConnection::InputNotify()
 	{
 		uint8_t buff[kDefaultBufferLength] = {'\0'};
@@ -78,8 +90,7 @@ namespace Network
 					m_recv_buffers.EraseFront(decode_length);
 					for(CPackets::iterator pit = packets.begin(); pit != packets.end(); ++ pit)
 					{
-						OnPacket(*(*pit));
-						delete(*pit);
+						OnPacket(*pit);
 					}
 				}
 				else if(decode_length < 0)
@@ -168,7 +179,7 @@ namespace Network
 		}
 	}
 
-	void CConnection::OnPacket(CPacket &packet)
+	void CConnection::OnPacket(CPacket *packet)
 	{
 		
 	}

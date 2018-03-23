@@ -18,7 +18,7 @@ namespace Network
 	{
 	public:
 		CPollPool(uint64_t epoll_size = 4096);
-		~CPollPool();
+		virtual ~CPollPool();
 
 	public:
 		int32_t Init();

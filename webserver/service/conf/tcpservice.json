@@ -1,0 +1,6 @@
+{
+	"log_dir" : "../log",
+	"log_level" : 7,
+	"pid_file" : "tcp.pid",
+	"daemon" : true
+}

@@ -57,7 +57,7 @@ namespace Network
 		return m_data_length;
 	}
 
-	uint64_t CBuffers::GetData(uint64_t pos, uint64_t length, void *data)
+	uint64_t CBuffers::GetData(uint64_t pos, uint64_t length, void *data) const
 	{
 		if(pos >= DataLength() || 0 == length || NULL == data)
 		{

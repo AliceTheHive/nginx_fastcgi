@@ -1,6 +1,6 @@
 /**
  * @file config.h
- * @brief defination of Config class
+ * @brief defination of CConfig class
  *
  * @author king
  * @date 2018-02-11
@@ -15,20 +15,20 @@
 
 
 /**
- * @class Config
+ * @class CConfig
  * @brief configuration class
  *
  * Operation of configuration file.
  *
  */
-class Config : public Json::Value
+class CConfig : public Json::Value
 {
 public:
 	/**
 	 * Contructor
 	 * @param path configuration file path
 	 */
-	Config(const std::string path);
+	CConfig(const std::string path);
 
 	/**
 	 * Load configuration file
@@ -61,4 +61,3 @@ private:
 
 
 #endif //__CONFIG_H__
-

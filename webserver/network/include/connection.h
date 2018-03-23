@@ -18,15 +18,16 @@ namespace Network
 		virtual ~CConnection();
 
 	public:
+		int64_t SendPacket(const CPacket &packet);
+		
+	public:
 		virtual void InputNotify();
 		virtual void OutputNotify();
-		virtual void OnPacket(CPacket &packet);
+		virtual void OnPacket(CPacket *packet);
 		virtual void OnDecodeError();
 
 	public:
 		virtual int64_t Decode(CPackets &packets) = 0;
-		virtual int64_t Encode(const CPacket &packet) = 0;
-		
 
 	protected:
 		std::string m_local_address;

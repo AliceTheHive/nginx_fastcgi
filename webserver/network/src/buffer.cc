@@ -83,6 +83,22 @@ namespace Network
 		m_data_offset = 0;
 	}
 
+	bool CBuffer::AddData(const void *data, uint64_t length)
+	{
+		if(true == IsNeedEnlargeBuffer(length))
+		{
+			if(false == EnlargeBuffer(m_data_end + length))
+			{
+				return false;
+			}
+		}
+
+		memcpy(m_data + m_data_end, data, length);
+		m_data_end += length;
+
+		return true;
+	}
+
 	void *CBuffer::GetData()
 	{
 		return reinterpret_cast<void *>(m_data + m_data_offset);
@@ -92,5 +108,36 @@ namespace Network
 	{
 		m_data_end = 0;
 		m_data_offset = 0;
+	}
+
+	bool CBuffer::IsNeedEnlargeBuffer(uint64_t size)
+	{
+		return (m_data_end + size) > m_buffer_length;
+	}
+
+	bool CBuffer::EnlargeBuffer(uint64_t size /* = 0 */)
+	{
+		uint8_t *enlarge_buffer = NULL;
+		uint64_t enlarge_size = size;
+		if(0 == size)
+		{
+			enlarge_size = m_buffer_length * 2;
+		}
+		if(enlarge_size <= m_buffer_length)
+		{
+			return false;
+		}
+
+		enlarge_buffer =  new uint8_t[enlarge_size];
+		if(NULL == enlarge_buffer)
+		{
+			return false;
+		}
+		
+		memcpy(enlarge_buffer, m_data, m_data_end);
+		delete[] m_data;
+		m_data = enlarge_buffer;
+		m_buffer_length = enlarge_size;
+		return true;
 	}
 };

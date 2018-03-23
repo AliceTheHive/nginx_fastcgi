@@ -21,9 +21,13 @@ namespace Network
 		uint64_t EraseFront(uint64_t count);
 		uint64_t EraseBack(uint64_t count);
 		void SetData(const void *data, uint64_t length);
+		bool AddData(const void *data, uint64_t length);
 		void *GetData();
 		void Clear();
 
+	private:
+		bool IsNeedEnlargeBuffer(uint64_t size);
+		bool EnlargeBuffer(uint64_t size = 0);
 	private:
 		CBuffer(const CBuffer &other);
 		const CBuffer &operator=(const CBuffer &other);

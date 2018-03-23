@@ -23,7 +23,7 @@ namespace Network
 		void PushBack(CBuffer *buffer);
 		void Clear(bool clean = true);
 		uint64_t DataLength() const;
-		uint64_t GetData(uint64_t pos, uint64_t length, void *data);
+		uint64_t GetData(uint64_t pos, uint64_t length, void *data) const;
 		uint64_t EraseFront(uint64_t count);
 
 	private:
