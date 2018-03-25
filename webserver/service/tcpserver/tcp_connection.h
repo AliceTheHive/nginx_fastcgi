@@ -11,7 +11,7 @@ using namespace Network;
 class CTcpConnection : public CConnection
 {
 public:
-	CTcpConnection(int32_t fd);
+	CTcpConnection(CClientProcess *client, int32_t fd);
 	virtual ~CTcpConnection();
 
 public:
@@ -20,6 +20,9 @@ public:
 
 private:
 	int64_t DecodePacket(int64_t pos, CPacket *&packet);
+
+private:
+	CClientProcess *m_successor;
 };
 
 

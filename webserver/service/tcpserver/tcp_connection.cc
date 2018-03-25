@@ -2,12 +2,42 @@
 
 #include "request_packet.h"
 #include "response_packet.h"
+#include "log.h"
 #include "task.h"
 
 
-CTcpConnection::CTcpConnection(int32_t fd) : CConnection(fd)
+class CClientReply : public CReplyDispatcher<CTask>
 {
+public:
+	CClientReply()
+	{
+		
+	}
+	virtual ~CClientReply()
+	{
+		
+	}
+
+public:
+	virtual void ReplyNotify(CTask *data);
+};
+
+
+void CClientReply::ReplyNotify(CTask *data)
+{
+	log_debug("CClientReply::ReplyNotify");
 	
+	CTcpConnection *connection = task->GetConnection();
+	if(NULL != connection)
+	{
+		connection->SendPacket(data->GetResponsePacket());
+	}
+}
+
+
+CTcpConnection::CTcpConnection(CClientProcess *client, int32_t fd) : CConnection(fd)
+{
+	m_successor = client;
 }
 
 CTcpConnection::~CTcpConnection()
@@ -22,7 +52,7 @@ void CTcpConnection::OnPacket(CPacket *packet)
 	task->SetConnection(this);
 	//task->PushReplyDispatcher();
 	task->SetRequestPacket(req_packet);
-	//m_successor->TaskNotify(task);
+	m_successor->TaskNotify(task);
 }
 
 int64_t CTcpConnection::Decode(CPackets &packets)

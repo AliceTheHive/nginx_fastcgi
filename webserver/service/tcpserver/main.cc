@@ -137,10 +137,10 @@ static bool SetSignal()
 	return true;
 }
 
-static bool CreatePidFile(const std::string &pidfile)
+static bool CreatePidFile()
 {
 	std::ofstream pidfile_ostream;
-	pidfile_ostream.open(pidfile.c_str(), std::ios::out | std::ios::trunc);
+	pidfile_ostream.open(gs_pidfile.c_str(), std::ios::out | std::ios::trunc);
 	if(true == pidfile_ostream.is_open())
 	{
 		pidfile_ostream << getpid();
@@ -148,11 +148,16 @@ static bool CreatePidFile(const std::string &pidfile)
 	}
 	else
 	{
-		log_error("Open pid file [%s] failed, errno [%d], strerror [%s].", pidfile.c_str(), errno, strerror(errno));
+		log_error("Open pid file [%s] failed, errno [%d], strerror [%s].", gs_pidfile.c_str(), errno, strerror(errno));
 		return false;
 	}
 
 	return true;
+}
+
+static void DeletePidFile()
+{
+	unlink(gs_pidfile.c_str());
 }
 
 static int32_t GetInheritedSocket(const std::string ip, uint16_t port)
@@ -184,62 +189,86 @@ static int32_t GetInheritedSocket(const std::string ip, uint16_t port)
 	return inherited_socket;
 }
 
+static void CloseInheritedSocket()
+{
+	int32_t inherited_socket = -1;
+	const char *inherited_string = getenv(kInheritedSocketName.c_str());
+	if(NULL != inherited_string)
+	{
+		inherited_socket = atoi(inherited_string);
+		close(inherited_socket);
+	}
+}
+
 static bool InitListenServer(const CConfig &config)
 {
-	if(config.isMember("listen") && config["listen"].isObject())
+	bool result = false;
+	do
 	{
-		Json::Value &listen = config["listen"];
-		if(listen.isMember("ip") && listen["ip"].isString()
-		   && listen.isMember("port") && listen["port"].isUInt())
+		if(config.isMember("listen") && config["listen"].isObject())
 		{
-			int32_t inherited_socket = GetInheritedSocket(listen["ip"].asString(), listen["port"].asUInt());
-			if(-1 == inherited_socket)
+			Json::Value &listen = config["listen"];
+			if(listen.isMember("ip") && listen["ip"].isString()
+			   && listen.isMember("port") && listen["port"].isUInt())
 			{
-				gs_listener = new CTcpListener(listen["ip"].asString(), listen["port"].asUInt());
+				int32_t inherited_socket = GetInheritedSocket(listen["ip"].asString(), listen["port"].asUInt());
+				if(-1 == inherited_socket)
+				{
+					gs_listener = new CTcpListener(gs_client_process, listen["ip"].asString(), listen["port"].asUInt());
+				}
+				else
+				{
+					gs_listener = new CTcpListener(gs_client_process, inherited_socket);
+				}
+
+				if(NULL == gs_listener)
+				{
+					log_error("Not enough memory for new CTcpListener.");
+					break;
+				}
+
+				if(0 != gs_listener->Listen())
+				{
+					log_error("The listener listen failed.");
+					break;
+				}
+			
+				if(0 != gs_listen_thread->Attach(gs_listener))
+				{
+					log_error("The listener attach listen thread failed.");
+					break;
+				}
+			
+				log_debug("Create listener success.");
+				result = true;
+				break;
 			}
 			else
 			{
-				gs_listener = new CTcpListener(inherited_socket);
+				log_error("Can not find valid ip or port field within config.");
+				break;
 			}
-
-			if(NULL == gs_listener)
-			{
-				log_error("Not enough memory for new CTcpListener.");
-				return false;
-			}
-
-			if(0 != gs_listener->Listen())
-			{
-				log_error("The listener listen failed.");
-				return false;
-			}
-			
-			if(0 != gs_listen_thread->Attach(gs_listener))
-			{
-				log_error("The listener attach listen thread failed.");
-				return false;
-			}
-			
-			log_debug("Create listener success.");
-			return true;
 		}
 		else
 		{
-			log_error("Can not find valid ip or port field within config.");
-			return false;
+			log_error("Can not find valid listen field within config.");
+			break;
 		}
-	}
-	else
-	{
-		log_error("Can not find valid listen field within config.");
-		return false;
-	}
+	} while(0);
 
-	return true;
+	CloseInheritedSocket();
+	return result;
 }
 
 static bool InitWorkProcess(const CConfig &config)
 {
+	gs_work_process = new CWorkProcess(gs_work_thread);
+	if(NULL == gs_work_process)
+	{
+		log_error("Not enough memory for new CWorkProcess.");
+		return false;
+	}
+	
 	gs_client_process = new CClientProcess(gs_listen_thread);
 	if(NULL == gs_client_process)
 	{
@@ -247,13 +276,6 @@ static bool InitWorkProcess(const CConfig &config)
 		return false;
 	}
 	
-	gs_work_process = new CWorkProcess(gs_work_thread);
-	if(NULL == gs_work_process)
-	{
-		log_error("Not enough memory for new CWorkProcess.");
-		return false;
-	}
-
 	gs_client_process->BindDispatcher(gs_work_process);
 
 	return true;
@@ -287,18 +309,18 @@ static bool InitThread(const CConfig &config)
 			break;
 		}
 
-		if(false == InitListenServer(config))
-		{
-			log_error("Init listen server failed.");
-			break;
-		}
-
 		if(false == InitWorkProcess(config))
 		{
 			log_error("Init work process failed.");
 			break;
 		}
 
+		if(false == InitListenServer(config))
+		{
+			log_error("Init listen server failed.");
+			break;
+		}
+		
 		gs_listen_thread->RunningThread();
 		gs_work_thread->RunningThread();
 		return true;
@@ -385,6 +407,11 @@ static void Destroy()
 	DELETE(gs_listen_thread);
 	DELETE(gs_work_thread);
 	CTaskPipe::DestroyAllPipe();
+
+	if(true == gs_delete_pidfile)
+	{
+		DeletePidFile();
+	}
 
 	log_debug("Destroy.");
 }

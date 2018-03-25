@@ -58,7 +58,7 @@ public:
 	}
 
 public:
-	virtual void TaskNotify(T data) = 0;
+	virtual void TaskNotify(T *data) = 0;
 
 protected:
 	CPollPool *m_owner;
