@@ -17,6 +17,7 @@ public:
 
 public:
 	virtual bool Initialize();
+	virtual void Prepare();
 	virtual void *Run();
 
 private:

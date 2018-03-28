@@ -8,6 +8,9 @@
 using namespace Network;
 
 
+class CClientProcess;
+
+
 class CTcpConnection : public CConnection
 {
 public:

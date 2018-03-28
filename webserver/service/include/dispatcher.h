@@ -173,6 +173,7 @@ public:
 		}
 		else
 		{
+			log_debug("ReplyNotify success.");
 			proc->ReplyNotify(static_cast<T *>(this));
 		}
 	}

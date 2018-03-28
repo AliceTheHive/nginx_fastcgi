@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+#include <map>
 #include <string>
 
 #include "pollunit.h"
@@ -23,6 +24,8 @@ namespace Network
 
 	public:
 		int32_t Listen(int32_t backlog = 1024);
+		int32_t AttachConnection(CConnection *connection);
+		int32_t DetachConnection(CConnection *connection);
 
 	public:
 		virtual void InputNotify();
@@ -42,6 +45,7 @@ namespace Network
 		int32_t m_reuse;
 		int32_t m_nodelay;
 		int32_t m_defer_accept;
+		std::map<int32_t, CConnection *> m_connections;
 	};
 };
 

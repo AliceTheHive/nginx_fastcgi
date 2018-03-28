@@ -23,8 +23,8 @@ namespace Network
 	public:
 		int32_t Init();
 		void UnInit();
-		int32_t Attach(CPollUnit *unit);
-		int32_t Detach(CPollUnit *unit);
+		int32_t AttachUnit(CPollUnit *unit);
+		int32_t DetachUnit(CPollUnit *unit);
 		int32_t EpollCtl(int32_t op, int32_t fd, epoll_event *ep_event);
 		int32_t EpollCtl(int32_t op, CPollUnit *unit);
 		int32_t EpollCtl(int32_t op, CPollUnit *unit, epoll_event *ep_event);

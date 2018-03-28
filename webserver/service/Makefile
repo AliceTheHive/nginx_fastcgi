@@ -28,6 +28,7 @@ target_dir := ./bin
 source_list := $(foreach dir, $(source_dirs), $(wildcard $(dir)/*.$(source_suffix)))
 object_list := $(patsubst %.$(source_suffix), %.o, $(source_list))
 deps_list := $(patsubst %.$(source_suffix), %.d, $(source_list))
+temp_deps_list := $(patsubst %.$(source_suffix), %.d.*, $(source_list))
 
 $(target) : $(object_list)
 	$(compile) $(cflags) $(cxxflags) $(object_list) -o $(target) $(libpath) $(dynamic_libs) -Wl,-Bstatic $(static_libs) -Wl,-Bdynamic
@@ -41,7 +42,8 @@ $(object_list) : %.o : %.$(source_suffix)
 $(deps_list) : %.d : %.$(source_suffix)
 	$(remove) $@; \
 	$(compile) -MM $(cflags) $(cxxflags) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+#	sed 's,\($(notdir $*)\)\.o[ :]*,\1.o \1.d : ,g' < $@.$$$$ > $@; \
+	sed 's,\($(notdir $*)\)\.o[ :]*,$*.o $@ : ,g' < $@.$$$$ > $@; \
 	$(remove) $@.$$$$
 
 include $(deps_list)
@@ -49,4 +51,4 @@ include $(deps_list)
 .PHONY : clean
 
 clean:
-	-@$(remove) $(object_list) $(target) $(target_dir)/$(target) $(deps_list)
+	-@$(remove) $(object_list) $(target) $(target_dir)/$(target) $(deps_list) $(temp_deps_list)

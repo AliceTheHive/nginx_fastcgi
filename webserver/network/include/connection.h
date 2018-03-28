@@ -11,6 +11,9 @@
 
 namespace Network
 {
+	class CListener;
+
+	
 	class CConnection : public CPollUnit
 	{
 	public:
@@ -19,6 +22,7 @@ namespace Network
 
 	public:
 		int64_t SendPacket(const CPacket &packet);
+		void SetListener(CListener *listener);
 		
 	public:
 		virtual void InputNotify();
@@ -36,6 +40,9 @@ namespace Network
 		uint16_t m_remote_port;
 		CBuffers m_recv_buffers;
 		CBuffers m_send_buffers;
+
+	private:
+		CListener *m_listener;
 	};
 };
 

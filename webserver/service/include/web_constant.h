@@ -16,12 +16,16 @@
 	} while(0)
 
 
-const uint16_t kProtocolMagic = 0xFFFF;
+const uint16_t kProtocolMagic = 0xFDFC;
 
 
 enum CmdType
 {
 	CT_MIN = 0,
+	CT_A = 1,
+	CT_B,
+	CT_C,
+	CT_D,
 	CT_MAX
 };
 

@@ -19,6 +19,8 @@ namespace Network
 {
 	CListener::CListener(std::string address, uint16_t port, int32_t rcvbuf_size /* = 0 */, int32_t sndbuf_size /* = 0 */, int32_t reuse /* = 1 */, int32_t nodelay /* = 1 */, int32_t defer_accept /* = 1 */)
 	{
+		EnableInput();
+		DisableOutput();
 		m_address = address;
 		m_port = port;
 		m_rcvbuf_size = rcvbuf_size;
@@ -31,6 +33,8 @@ namespace Network
 
 	CListener::CListener(int32_t fd)
 	{
+		EnableInput();
+		DisableOutput();
 		m_address = "";
 		m_port = 0;
 		m_rcvbuf_size = 0;
@@ -73,6 +77,19 @@ namespace Network
 	{
 		m_address = "";
 		m_port = 0;
+		while(m_connections.size() > 0)
+		{
+			CConnection *connection = m_connections.begin()->second;
+			if(NULL != connection)
+			{
+				delete connection;
+			}
+			else
+			{
+				break;
+			}
+		}
+		m_connections.clear();
 	}
 
 	int32_t CListener::Listen(int32_t backlog /* = 1024 */)
@@ -178,6 +195,30 @@ namespace Network
 		return 0;
 	}
 
+	int32_t CListener::AttachConnection(CConnection *connection)
+	{
+		if(NULL == connection)
+		{
+			return -1;
+		}
+		connection->SetListener(this);
+		m_connections[connection->GetFD()] = connection;
+		return 0;
+	}
+
+	int32_t CListener::DetachConnection(CConnection *connection)
+	{
+		if(NULL == connection)
+		{
+			return -1;
+		}
+		log_debug("CListener::DetachConnection [%d] begin.", connection->GetFD());
+		connection->SetListener(NULL);
+		m_connections.erase(connection->GetFD());
+		log_debug("CListener::DetachConnection [%d] end.", connection->GetFD());
+		return 0;
+	}
+
 	CConnection *CListener::Accept()
 	{
 		sockaddr_in remote_addr;
@@ -214,19 +255,23 @@ namespace Network
 
 	void CListener::InputNotify()
 	{
+		log_debug("CListener::InputNotify");
+		
 		CConnection *connection = this->Accept();
 		if(NULL == connection)
 		{
 			log_error("Accept one connection failed.");
 			return;
 		}
-		if(-1 == (GetOwner()->Attach(connection)))
+		if(-1 == (GetOwner()->AttachUnit(connection)))
 		{
 			log_error("Attach connection to owner failed.");
 			delete connection;
 			connection = NULL;
 			return;
 		}
+
+		AttachConnection(connection);
 
 		if(m_defer_accept > 0)
 		{

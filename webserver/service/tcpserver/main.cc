@@ -1,17 +1,29 @@
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <errno.h>
 #include <getopt.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 
+#include "client_process.h"
 #include "common.h"
 #include "config.h"
 #include "log.h"
-#include "pollthread.h"
-#include "tcp_constant.h"
+#include "poll_thread.h"
+#include "taskpipe.h"
 #include "tcp_listener.h"
+#include "version.h"
+#include "web_constant.h"
+#include "work_process.h"
 
 
 static int gs_argc = 0;
@@ -207,7 +219,7 @@ static bool InitListenServer(const CConfig &config)
 	{
 		if(config.isMember("listen") && config["listen"].isObject())
 		{
-			Json::Value &listen = config["listen"];
+			const Json::Value &listen = config["listen"];
 			if(listen.isMember("ip") && listen["ip"].isString()
 			   && listen.isMember("port") && listen["port"].isUInt())
 			{
@@ -233,7 +245,7 @@ static bool InitListenServer(const CConfig &config)
 					break;
 				}
 			
-				if(0 != gs_listen_thread->Attach(gs_listener))
+				if(0 != gs_listen_thread->AttachUnit(gs_listener))
 				{
 					log_error("The listener attach listen thread failed.");
 					break;
@@ -291,7 +303,7 @@ static bool InitThread(const CConfig &config)
 			log_error("Not enough memory for new listen_thread CPollThread.");
 			break;
 		}
-		if(false == gs_listen_thread.Start())
+		if(false == gs_listen_thread->Start())
 		{
 			log_error("Listen thread start failed.");
 			break;
@@ -303,7 +315,7 @@ static bool InitThread(const CConfig &config)
 			log_error("Not enough memory for new work_thread CPollThread.");
 			break;
 		}
-		if(false == gs_work_thread.Start())
+		if(false == gs_work_thread->Start())
 		{
 			log_error("Work thread start failed.");
 			break;
@@ -371,7 +383,7 @@ static bool Initialize(const CConfig &config)
 		return false;
 	}
 
-	if(false == InitThread())
+	if(false == InitThread(config))
 	{
 		log_error("Initialize failed, when InitThread.");
 		return false;
@@ -387,18 +399,29 @@ static void DaemonWait()
 	{
 		pause();
 	}
+
+	log_debug("DaemonWait end.");
 }
 
 static void Destroy()
 {
+	log_debug("Destroy begin.");
 	if(NULL != gs_listen_thread)
 	{
-		gs_listen_thread->Interrupt();
+		gs_listen_thread->Interrupt(NULL);
+		
+		if(NULL != gs_listener)
+		{
+			gs_listen_thread->DetachUnit(gs_listener);
+		}
+
+		gs_listen_thread->UnInit();
 	}
 
 	if(NULL != gs_work_thread)
 	{
-		gs_work_thread->Interrupt();
+		gs_work_thread->Interrupt(NULL);
+		gs_work_thread->UnInit();
 	}
 
 	DELETE(gs_listener);
@@ -406,14 +429,14 @@ static void Destroy()
 	DELETE(gs_work_process);
 	DELETE(gs_listen_thread);
 	DELETE(gs_work_thread);
-	CTaskPipe::DestroyAllPipe();
+	CTaskPipe<CTask>::DestroyAllPipe();
 
 	if(true == gs_delete_pidfile)
 	{
 		DeletePidFile();
 	}
 
-	log_debug("Destroy.");
+	log_debug("Destroy end.");
 }
 
 int main(int argc, char **argv)
@@ -426,7 +449,7 @@ int main(int argc, char **argv)
 		{"Version", no_argument, NULL, 'V'},
 		{"version", no_argument, NULL, 'v'},
 		{NULL, no_argument, NULL, 0}
-	}
+	};
 
 	while(true)
 	{

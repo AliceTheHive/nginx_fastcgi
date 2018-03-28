@@ -40,7 +40,7 @@ public:
 		SetNonBlock();
 		EnableInput();
 		DisableOutput();
-		return pool->Attach(this);
+		return pool->AttachUnit(this);
 	}
 
 public:
@@ -56,12 +56,14 @@ public:
 	
 	virtual void InputNotify()
 	{
+		log_debug("CPipeQueueReader::InputNotify [%d] begin.", m_fd);
 		T data;
 		uint32_t task_num = 0;
-		while(task_num < (kCommonConstant * 2) && (data = Pop()) != NULL)
+		while(++task_num <= (kCommonConstant * 2) && (data = Pop()) != NULL)
 		{
 			this->TaskNotify(data);
 		}
+		log_debug("CPipeQueueReader::InputNotify [%d] end.", m_fd);
 	}
 
 	virtual void OutputNotify()
@@ -84,6 +86,7 @@ private:
 				memmove(reinterpret_cast<void *>(m_buf), reinterpret_cast<void *>(m_buf + m_data_num_offset), m_remaining_size);
 			}
 			m_data_num_offset = 0;
+			m_data_num_end = 0;
 			
 			int32_t read_size = read(m_fd, reinterpret_cast<void *>(reinterpret_cast<char *>(m_buf) + m_remaining_size), sizeof(m_buf) - m_remaining_size);
 			if(read_size <= 0)
@@ -92,6 +95,7 @@ private:
 			}
 			m_remaining_size += read_size;
 			m_data_num_end = m_remaining_size / sizeof(T);
+			log_debug("The fd [%d] read [%d] bytes data.", m_fd, read_size);
 		}
 
 		m_remaining_size -= sizeof(T);
@@ -134,6 +138,7 @@ public:
 	}
 	virtual void OutputNotify()
 	{
+		log_debug("CPipeQueueWriter::OutputNotify [%d] begin.", m_fd);
 		if(m_data_size_end > m_data_size_offset)
 		{
 			int32_t write_size = write(m_fd, reinterpret_cast<void *>(m_buf + m_data_size_offset), m_data_size_end - m_data_size_offset);
@@ -141,12 +146,17 @@ public:
 			{
 				m_data_size_offset += write_size;
 			}
+
+			log_debug("The fd [%d] write [%d] bytes data.", m_fd, write_size);
 		}
 		if((m_data_size_end - m_data_size_offset) <= 0)
 		{
 			m_data_size_end = m_data_size_offset = 0;
 			DisableOutput();
 		}
+
+		GetOwner()->ModifyEvent(this);
+		log_debug("CPipeQueueWriter::OutputNotify [%d] end.", m_fd);
 	}
 
 public:
@@ -155,8 +165,8 @@ public:
 		m_fd = fd;
 		SetNonBlock();
 		DisableInput();
-		EnableOutput();
-		return pool->Attach(this);
+		DisableOutput();
+		return pool->AttachUnit(this);
 	}
 
 	int32_t Push(T data)
@@ -184,12 +194,16 @@ public:
 		}
 
 		reinterpret_cast<T *>(reinterpret_cast<char *>(m_buf) + m_data_size_end)[0] = data;
+		m_data_size_end += sizeof(T);
 		EnableOutput();
+		GetOwner()->ModifyEvent(this);
 		
 		if(((m_data_size_end - m_data_size_offset) >= (kCommonConstant * sizeof(T))) && (0 == m_data_size_end % (kCommonConstant * sizeof(T))))
 		{
 			OutputNotify();
 		}
+
+		return 0;
 	}
 
 private:
@@ -202,6 +216,7 @@ private:
 template<typename T>
 class CPipeQueue : public CPipeQueueReader<T>
 {
+	
 public:
 	CPipeQueue()
 	{
@@ -223,6 +238,8 @@ public:
 		}
 		CPipeQueueReader<T>::AttachPool(to, fd[0]);
 		m_writer.AttachPool(from, fd[1]);
+
+		return 0;
 	}
 
 	int32_t Push(T data)

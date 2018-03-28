@@ -1,5 +1,7 @@
 #include "task.h"
 
+#include <arpa/inet.h>
+
 
 CTask::CTask()
 {
@@ -17,12 +19,12 @@ CTask::~CTask()
 	}
 }
 
-void CTask::SetConnection(CWebConnection *connection)
+void CTask::SetConnection(CTcpConnection *connection)
 {
 	m_connection = connection;
 }
 
-CWebConnection *CTask::GetConnection()
+CTcpConnection *CTask::GetConnection()
 {
 	return m_connection;
 }
@@ -30,6 +32,8 @@ CWebConnection *CTask::GetConnection()
 void CTask::SetRequestPacket(CRequestPacket *req_packet)
 {
 	m_req_packet = req_packet;
+	m_res_packet.m_header = req_packet->m_header;
+	m_res_packet.m_header.data_length = 0;
 }
 
 void CTask::SetResponseHeader(const ProtocolHeader &header)
@@ -37,9 +41,15 @@ void CTask::SetResponseHeader(const ProtocolHeader &header)
 	m_res_packet.m_header = header;
 }
 
-void CTask::SetResponseBody(const char *body)
+void CTask::SetResponseBody(const char *body, uint32_t length /* = 0 */)
 {
 	m_res_packet.m_body = body;
+	m_res_packet.m_header.data_length = htonl(length);
+}
+
+void CTask::SetResponseDataLength(uint32_t length)
+{
+	m_res_packet.m_header.data_length = htonl(length);
 }
 
 const CResponsePacket &CTask::GetResponsePacket()

@@ -9,6 +9,7 @@
 
 #include "constant.h"
 #include "buffer.h"
+#include "listener.h"
 #include "log.h"
 #include "pollpool.h"
 
@@ -25,6 +26,7 @@ namespace Network
 		m_local_port = 0;
 		m_remote_address = "";
 		m_remote_port = 0;
+		m_listener = NULL;
 		
 		if(-1 != m_fd)
 		{
@@ -48,7 +50,11 @@ namespace Network
 
 	CConnection::~CConnection()
 	{
-		
+		if(NULL != m_listener)
+		{
+			m_listener->DetachConnection(this);
+			m_listener = NULL;
+		}
 	}
 
 	int64_t CConnection::SendPacket(const CPacket &packet)
@@ -63,13 +69,21 @@ namespace Network
 		return encode_length;
 	}
 
+	void CConnection::SetListener(CListener *listener)
+	{
+		m_listener = listener;
+	}
+
 	void CConnection::InputNotify()
 	{
+		log_debug("CConnection::InputNotify");
+		
 		uint8_t buff[kDefaultBufferLength] = {'\0'};
 		int64_t recv_length = -1;
 		do
 		{
 			recv_length = read(m_fd, buff, sizeof(buff));
+			log_debug("Read [%ld] bytes data.", recv_length);
 			if(recv_length > 0)
 			{
 				CBuffer *one_buffer = new CBuffer(recv_length);
@@ -85,6 +99,7 @@ namespace Network
 
 				CPackets packets;
 				int64_t decode_length = Decode(packets);
+				log_debug("Decode [%ld] bytes data.", decode_length);
 				if(decode_length > 0)
 				{
 					m_recv_buffers.EraseFront(decode_length);
@@ -174,7 +189,7 @@ namespace Network
 
 		if(m_send_buffers.empty())
 		{
-			EnableOutput();
+			DisableOutput();
 			GetOwner()->ModifyEvent(this);
 		}
 	}

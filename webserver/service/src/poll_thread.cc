@@ -28,6 +28,11 @@ bool CPollThread::Initialize()
 	return true;
 }
 
+void CPollThread::Prepare()
+{
+	
+}
+
 void *CPollThread::Run()
 {
 	while(!IsNeedStop())

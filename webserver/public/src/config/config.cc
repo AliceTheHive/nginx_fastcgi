@@ -3,12 +3,12 @@
 #include <fstream>
 
 
-Config::Config(const std::string path)
+CConfig::CConfig(const std::string path)
 {
 	file_path = path;
 }
 
-bool Config::Load()
+bool CConfig::Load()
 {
 	Json::Reader reader;
 	std::ifstream file(file_path.c_str());
@@ -18,18 +18,18 @@ bool Config::Load()
 		return false;
 }
 
-bool Config::Reload()
+bool CConfig::Reload()
 {
 	this->clear();
 	return this->Load();
 }
 
-bool Config::Save()
+bool CConfig::Save()
 {
 	return SaveAs(file_path);
 }
 
-bool Config::SaveAs(const std::string path)
+bool CConfig::SaveAs(const std::string path)
 {
 	Json::StyledStreamWriter writer;
 

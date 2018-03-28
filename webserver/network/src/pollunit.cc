@@ -5,6 +5,7 @@
 
 #include <sys/socket.h>
 
+#include "log.h"
 #include "pollpool.h"
 
 
@@ -19,9 +20,10 @@ namespace Network
 
 	CPollUnit::~CPollUnit()
 	{
+		log_debug("CPollUnit::~CPollUnit [%d] begin.", m_fd);
 		if(NULL != m_owner)
 		{
-			m_owner->Detach(this);
+			m_owner->DetachUnit(this);
 			m_owner = NULL;
 		}
 
@@ -32,6 +34,7 @@ namespace Network
 		}
 
 		m_events = 0;
+		log_debug("CPollUnit::~CPollUnit end.");
 	}
 
 	void CPollUnit::EnableInput()

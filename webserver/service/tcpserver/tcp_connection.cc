@@ -1,5 +1,6 @@
 #include "tcp_connection.h"
 
+#include "client_process.h"
 #include "request_packet.h"
 #include "response_packet.h"
 #include "log.h"
@@ -27,12 +28,16 @@ void CClientReply::ReplyNotify(CTask *data)
 {
 	log_debug("CClientReply::ReplyNotify");
 	
-	CTcpConnection *connection = task->GetConnection();
+	CTcpConnection *connection = data->GetConnection();
 	if(NULL != connection)
 	{
 		connection->SendPacket(data->GetResponsePacket());
 	}
+	delete data;
 }
+
+
+static CClientReply gs_client_reply;
 
 
 CTcpConnection::CTcpConnection(CClientProcess *client, int32_t fd) : CConnection(fd)
@@ -47,16 +52,19 @@ CTcpConnection::~CTcpConnection()
 
 void CTcpConnection::OnPacket(CPacket *packet)
 {
+	log_debug("CTcpConnection::OnPacket begin.");
 	CRequestPacket *req_packet = dynamic_cast<CRequestPacket *>(packet);
 	CTask *task = new CTask();
 	task->SetConnection(this);
-	//task->PushReplyDispatcher();
+	task->PushReplyDispatcher(&gs_client_reply);
 	task->SetRequestPacket(req_packet);
 	m_successor->TaskNotify(task);
+	log_debug("CTcpConnection::OnPacket end.");
 }
 
 int64_t CTcpConnection::Decode(CPackets &packets)
 {
+	log_debug("CTcpConnection::Decode begin.");
 	int64_t decode_length = 0;
 	while(true)
 	{
@@ -80,7 +88,8 @@ int64_t CTcpConnection::Decode(CPackets &packets)
 			break;
 		}
 	}
-
+	
+	log_debug("CTcpConnection::Decode end.");
 	return decode_length;
 }
 

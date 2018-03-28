@@ -9,8 +9,14 @@
 using namespace Network;
 
 
+class CTask;
+
+
 class CRequestPacket : public CPacket
 {
+public:
+	friend class CTask;
+	
 public:
 	CRequestPacket();
 	virtual ~CRequestPacket();

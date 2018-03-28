@@ -5,7 +5,9 @@ module_dir := src
 module_list := $(patsubst %, $(module_dir)/%, $(module_name))
 source_list := $(foreach module, $(module_list), $(wildcard $(module)/*.$(source_suffix)))
 object_list := $(patsubst %.$(source_suffix), %.o, $(source_list))
+object_list :=
 libpath :=
+ar_libs += ./lib/libconfig.a ./lib/liblog.a
 dynamic_libs +=
 static_libs +=
 target := libpublic.a
@@ -17,9 +19,10 @@ target_dir := ./lib
 modules_make = $(MAKE) -C $(1);
 modules_clean = $(MAKE) clean -C $(1);
 
-$(target) : mm
-	-@$(remove) $(target);
-	ar crs $(target) $(object_list)
+$(target) : mm $(ar_libs)
+#	-@$(remove) $(target);
+#	ar crs $(target) $(object_list) $(ar_libs)
+	$(BUILD_LIBRARY)
 #copy 目标到指定文件
 	-@$(copy) $(target) $(target_dir)
 	-@echo $(target) make done!

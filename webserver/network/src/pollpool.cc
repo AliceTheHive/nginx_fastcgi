@@ -52,25 +52,24 @@ namespace Network
 
 	void CPollPool::UnInit()
 	{
-		for(POLLUNIT_MAP::iterator pit = m_poll_units.begin(); pit != m_poll_units.end(); ++ pit)
+		while(m_poll_units.size() > 0)
 		{
-			CPollUnit *unit = pit->second;
-			unit->Close();
-			delete unit;
+			POLLUNIT_MAP::iterator pit = m_poll_units.begin();
+			if(m_poll_units.end() != pit)
+			{				
+				CPollUnit *unit = pit->second;
+				this->DetachUnit(unit);
+			}
+			else
+			{
+				break;
+			}
 		}
-
-		m_poll_units.clear();
 	}
 
-	int32_t CPollPool::Attach(CPollUnit *unit)
+	int32_t CPollPool::AttachUnit(CPollUnit *unit)
 	{
 		if(m_poll_units.size() >= m_epoll_size || NULL == unit)
-		{
-			return -1;
-		}
-
-		epoll_event *event = unit->GetEpollEvent();
-		if(NULL == event)
 		{
 			return -1;
 		}
@@ -86,8 +85,9 @@ namespace Network
 		return 0;
 	}
 
-	int32_t CPollPool::Detach(CPollUnit *unit)
+	int32_t CPollPool::DetachUnit(CPollUnit *unit)
 	{
+		log_debug("CPollPool::DetachUnit [%d] begin.", unit->GetFD());
 		if(NULL == unit)
 		{
 			return -1;
@@ -107,6 +107,7 @@ namespace Network
 
 		unit->m_owner = NULL;
 		m_poll_units.erase(unit->GetFD());
+		log_debug("CPollPool::DetachUnit [%d] end.", unit->GetFD());
 		return 0;
 	}
 
@@ -114,7 +115,7 @@ namespace Network
 	{
 		if(0 != (epoll_ctl(m_epoll_fd, op, fd, ep_event)))
 		{
-			log_error("Epoll ctl [%d] fd [%d] failed.", op, fd);
+			log_error("Epoll ctl [%d] fd [%d] failed, errno [%d], strerror [%s].", op, fd, errno, strerror(errno));
 			return -1;
 		}
 
@@ -183,11 +184,13 @@ namespace Network
 			
 			if(one_event->events & EPOLLOUT)
 			{
+				log_debug("The fd [%d] EPOLLOUT.", one_event->data.fd);
 				unit->OutputNotify();
 			}
 
 			if(one_event->events & EPOLLIN)
 			{
+				log_debug("The fd [%d] EPOLLIN.", one_event->data.fd);
 				unit->InputNotify();
 			}
 		}

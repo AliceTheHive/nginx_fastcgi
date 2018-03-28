@@ -7,7 +7,7 @@
 #include "response_packet.h"
 
 
-class CWebConnection;
+class CTcpConnection;
 
 
 class CTask : public CTaskReplyList<CTask>
@@ -17,15 +17,16 @@ public:
 	virtual ~CTask();
 
 public:
-	void SetConnection(CWebConnection *connection);
-	CWebConnection *GetConnection();
+	void SetConnection(CTcpConnection *connection);
+	CTcpConnection *GetConnection();
 	void SetRequestPacket(CRequestPacket *req_packet);
 	void SetResponseHeader(const ProtocolHeader &header);
-	void SetResponseBody(const char *body);
+	void SetResponseBody(const char *body, uint32_t length = 0);
+	void SetResponseDataLength(uint32_t length);
 	const CResponsePacket &GetResponsePacket();
 
 private:
-	CWebConnection *m_connection;
+	CTcpConnection *m_connection;
 	CRequestPacket *m_req_packet;
 	CResponsePacket m_res_packet;
 };

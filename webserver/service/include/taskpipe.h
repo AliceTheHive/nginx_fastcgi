@@ -15,7 +15,7 @@ class CReplyDispatcher;
 
 
 template<typename T>
-class CIncomingPipe : public CPipeQueue<T>
+class CIncomingPipe : public CPipeQueue<T *>
 {
 public:
 	CIncomingPipe()
@@ -29,7 +29,7 @@ public:
 	}
 
 public:
-	virtual void TaskNotify(T data)
+	virtual void TaskNotify(T *data)
 	{
 		m_successor->TaskNotify(data);
 	}
@@ -87,7 +87,7 @@ public:
 	}
 
 public:
-	int32_t BindDispatcher(CTaskDispatcher<T> *from, CTaskDispatcher *to)
+	int32_t BindDispatcher(CTaskDispatcher<T> *from, CTaskDispatcher<T> *to)
 	{
 		CTaskDispatcher<T>::m_owner = from->GetOwner();
 		m_incoming_pipe.AttachPool(from->GetOwner(), to->GetOwner());
@@ -100,7 +100,7 @@ public:
 public:
 	static void DestroyAllPipe()
 	{
-		CTaskPipe *tp = NULL;
+		CTaskPipe<T> *tp = NULL;
 		while(!s_pipelist.empty())
 		{
 			tp = s_pipelist.front();
@@ -113,7 +113,7 @@ public:
 	}
 
 private:
-	CIncomingPipe<T *> m_incoming_pipe;
+	CIncomingPipe<T> m_incoming_pipe;
 	CReturnPipe<T> m_return_pipe;
 	
 private:
