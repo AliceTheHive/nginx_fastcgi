@@ -1,0 +1,19 @@
+{
+	"log_dir" : "../log",
+	"log_level" : 7,
+	"pid_file" : "fastcgi.pid",
+	"service" :
+	[
+		{
+			"ip" : "192.168.144.126",
+			"port" : 12345,
+			"thread_num" : 10
+		},
+		{
+			"ip" : "192.168.144.126",
+			"port" : 12346,
+			"thread_num" : 10
+		},
+	],
+	"daemon" : true
+}
