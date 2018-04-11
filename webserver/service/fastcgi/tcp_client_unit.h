@@ -23,6 +23,7 @@ public:
 	void Close();
 	bool AttachPool(CTcpClientUnitPool *pool);
 	bool DetachPool();
+	bool AttachClient(CTcpClient *client);
 
 public:
 	CPollThread *GetPollThread()

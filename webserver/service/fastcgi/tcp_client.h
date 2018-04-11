@@ -4,6 +4,7 @@
 
 #include <queue>
 
+#include "fcgi_packet.h"
 #include "pollunit.h"
 #include "threadmutex.h"
 
@@ -32,7 +33,14 @@ public:
 	virtual void OutputNotify();
 
 private:
+	bool IsConnect();
 	void ErrorNotify();
+	void ResultNotify();
+	bool RecvHeader();
+	bool RecvBody();
+	bool ResponseError(int32_t code);
+	bool ResponseResult();
+	void ResetData();
 	
 private:
 	CTcpClientUnit *m_unit;
@@ -41,6 +49,8 @@ private:
 	uint32_t m_max_req_count;
 	CThreadMutex m_req_mutex;
 	CRequest *m_cur_request;
+	CFcgiPacket m_web_packet;
+	CFcgiPacket m_server_packet;
 	std::queue<CRequest *> m_requests;
 };
 

@@ -99,3 +99,13 @@ bool CTcpClientUnit::DetachPool()
 	}
 	return true;
 }
+
+bool CTcpClientUnit::AttachClient(CTcpClient *client)
+{
+	if(NULL == m_pollthread)
+	{
+		return false;
+	}
+
+	return m_pollthread->AttachUnit(client);
+}

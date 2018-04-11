@@ -122,6 +122,4 @@ void CTcpClientUnitPool::CloseAllClientUnit()
 		}
 		CloseOneClientUnit(clientunit);
 	}
-
-	
 }

@@ -1,7 +1,7 @@
 #include "tcp_client.h"
 
 #include "log.h"
-#include "web_constant.h"
+#include "errcode.h"
 
 
 CTcpClient::CTcpClient(CTcpClientUnit *unit
@@ -29,9 +29,9 @@ CTcpClient::~CTcpClient()
 	m_cur_request = NULL;
 	while(!m_requests.empty())
 	{
-		CRequest *request = m_requests.front();
+		//CRequest *request = m_requests.front();
 		m_requests.pop();
-		DELETE(request);
+		//DELETE(request);
 	}
 }
 
@@ -113,7 +113,16 @@ void CTcpClient::Close()
 
 bool CTcpClient::DispatchRequest(CRequest *request)
 {
-	
+	m_req_mutex.Lock();
+	if(static_cast<uint32_t>(m_requests.size()) >= m_max_req_count)
+	{
+		m_req_mutex.UnLock();
+		return false;
+	}
+
+	m_requests.push(request);
+	m_req_mutex.UnLock();
+	return true;
 }
 
 void CTcpClient::HangupNotify()
@@ -128,7 +137,50 @@ void CTcpClient::RDHupNotify()
 
 void CTcpClient::InputNotify()
 {
-	
+	bool ret = false;
+	bool is_need_close_connect = false;
+	if(!m_server_packet.HeaderFinish())
+	{
+		ret = RecvHeader();
+		if(true == ret)
+		{
+			if(m_server_packet.HeaderFinish())
+			{
+				if(false == m_server_packet.DecodeHeader())
+				{
+					log_error("Decode header failed, need close connect.");
+					is_need_close_connect = true;
+				}
+			}
+		}
+		else
+		{
+			log_error("Recv header failed, need close connect.");
+			is_need_close_connect = true;
+		}
+	}
+	else
+	{
+		ret = RecvBody();
+		if(true == ret)
+		{
+			if(m_server_packet.BodyFinish())
+			{
+				ResultNotify();
+				log_debug("Response result success.");
+			}
+		}
+		else
+		{
+			log_error("Recv body failed, need close connect.");
+			is_need_close_connect = true;
+		}
+	}
+
+	if(true == is_need_close_connect)
+	{
+		ErrorNotify();
+	}
 }
 
 void CTcpClient::OutputNotify()
@@ -136,13 +188,133 @@ void CTcpClient::OutputNotify()
 	
 }
 
+bool CTcpClient::IsConnect()
+{
+	return (m_fd > 0);
+}
+
+bool CTcpClient::Reconnect()
+{
+	if(true == IsConnect())
+	{
+		return true;
+	}
+
+	if(false == Connect())
+	{
+		return false;
+	}
+
+	if(false == m_unit->AttachClient(this))
+	{
+		Close();
+		return false;
+	}
+
+	return true;
+}
+
 void CTcpClient::ErrorNotify()
 {
+	if(NULL != m_cur_request)
+	{
+		ResponseError(FC_NETWORK_ERROR);
+	}
+	
 	m_owner->Suspend();
 	m_owner->DetachUnit(this);
-	if(m_fd > 0)
+	Close();
+	ResetData();
+}
+
+void CTcpClient::ResultNotify()
+{
+	if(NULL != m_cur_request)
 	{
-		close(m_fd);
-		m_fd = -1;
+		ResponseResult();
 	}
+	ResetData();
+}
+
+bool CTcpClient::RecvHeader()
+{
+	int64_t recv_length = -1;
+	recv_length = read(m_fd, m_server_packet.HeaderBuffer() + m_server_packet.HeaderRecvedLength(), m_server_packet.HeaderLength() - m_server_packet.HeaderRecvedLength());
+	if(recv_length > 0)
+	{
+		m_server_packet.SetHeaderRecvedLength(m_server_packet.HeaderRecvedLength() + recv_length);
+	}
+	else if(0 == recv_length)
+	{
+		log_error("The remote process initiative close fd [%d], remote address [%s], remote port [%u].", m_fd, m_server_ip.c_str(), m_server_port);
+		return false;
+	}
+	else
+	{
+		if(EINTR != errno
+		   && EAGAIN != errno
+		   && EINPROGRESS != errno
+		   && EWOULDBLOCK != errno)
+		{
+			log_error("The client [%d] recv failed, errno [%d], strerror [%s].", m_fd, errno, strerror(errno));
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool CTcpClient::RecvBody()
+{
+	int64_t recv_length = -1;
+	recv_length = read(m_fd, m_server_packet.BodyBuffer() + m_server_packet.BodyRecvedLength(), m_server_packet.BodyLength() - m_server_packet.BodyRecvedLength());
+	if(recv_length > 0)
+	{
+		m_server_packet.SetBodyRecvedLength(m_server_packet.BodyRecvedLength() + recv_length);
+	}
+	else if(0 == recv_length)
+	{
+		log_error("The remote process initiative close fd [%d], remote address [%s], remote port [%u].", m_fd, m_server_ip.c_str(), m_server_port);
+		return false;
+	}
+	else
+	{
+		if(EINTR != errno
+		   && EAGAIN != errno
+		   && EINPROGRESS != errno
+		   && EWOULDBLOCK != errno)
+		{
+			log_error("The client [%d] recv failed, errno [%d], strerror [%s].", m_fd, errno, strerror(errno));
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool CTcpClient::ResponseError(int32_t code)
+{
+	fcgi_ostream out_stream(m_cur_request->out);
+	Json::Value response;
+	response["code"] = code;
+	response["message"] = GetFcgiCodeStr(code);
+	out_stream << "Content-type: text/html\r\n\r\n";
+	out_stream << response.toStyledString();
+	CRequestFactory::Instance()->Finish(m_cur_request);
+	return true;
+}
+
+bool CTcpClient::ResponseResult()
+{
+	fcgi_ostream out_stream(m_cur_request->out);
+	out_stream.write(static_cast<char *>(m_server_packet.BodyBuffer()), m_server_packet.BodyLength());
+	CRequestFactory::Instance()->Finish(m_cur_request);
+	return true;
+}
+
+void CTcpClient::ResetData()
+{
+	m_cur_request = NULL;
+	m_web_packet.Reset();
+	m_server_packet.Reset();
 }
