@@ -45,6 +45,7 @@ namespace Network
 		void Close();
 
 	public:
+		virtual bool DoSomething();
 		virtual void HangupNotify();
 		virtual void RDHupNotify();
 		virtual void Clear();

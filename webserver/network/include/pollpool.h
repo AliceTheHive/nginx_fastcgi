@@ -30,15 +30,18 @@ namespace Network
 		int32_t EpollCtl(int32_t op, CPollUnit *unit, epoll_event *ep_event);
 		int32_t EpollCtl(int32_t op, CPollUnit *unit, uint32_t events);
 		int32_t ModifyEvent(CPollUnit *unit);
+		int32_t DoOtherSomething();
 		int32_t EpollProcess(int32_t timeout = 3000);
 
 	private:
+		typedef std::list<CPollUnit *> POLLUNIT_LIST;
 		typedef std::map<int32_t, CPollUnit *> POLLUNIT_MAP;
 		
 	private:
 		int32_t m_epoll_fd;
 		uint64_t m_epoll_size;
 		epoll_event *m_epoll_events;
+		POLLUNIT_LIST m_poll_pres;
 		POLLUNIT_MAP m_poll_units;
 	};
 };

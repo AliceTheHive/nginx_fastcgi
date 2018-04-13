@@ -24,6 +24,7 @@ public:
 	bool AttachPool(CTcpClientUnitPool *pool);
 	bool DetachPool();
 	bool AttachClient(CTcpClient *client);
+	bool IsSuspend();
 
 public:
 	CPollThread *GetPollThread()

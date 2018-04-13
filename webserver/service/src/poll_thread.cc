@@ -66,6 +66,18 @@ void *CPollThread::Run()
 				continue;
 			}
 		}
+		
+		DoOtherSomething();
+
+		if(true == m_is_use_signal)
+		{
+			if(true == m_is_suspend)
+			{
+				m_ctrl_condition.Wait();
+				continue;
+			}
+		}
+
 		EpollProcess(m_epoll_timeout);
 	}
 

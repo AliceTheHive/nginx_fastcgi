@@ -197,6 +197,11 @@ namespace Network
 		}
 	}
 
+	bool CPollUnit::DoSomething()
+	{
+		
+	}
+
 	void CPollUnit::HangupNotify()
 	{
 		delete this;

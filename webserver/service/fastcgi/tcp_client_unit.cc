@@ -24,7 +24,7 @@ CTcpClientUnit::~CTcpClientUnit()
 
 bool CTcpClientUnit::Init()
 {
-	m_pollthread = new CPollThread(m_thread_name, 4096, 3000, true, false);
+	m_pollthread = new CPollThread(m_thread_name, 4096, 3000, true, true);
 	if(NULL == m_pollthread)
 	{
 		log_error("Not enough memory for new [%s] CPollThread.", m_thread_name.c_str());

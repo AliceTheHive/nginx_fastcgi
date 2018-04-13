@@ -9,6 +9,8 @@ CTcpClient::CTcpClient(CTcpClientUnit *unit
 					   , uint16_t port
 					   , uint32_t max_req_count /* = 5000 */)
 {
+	EnableInput();
+	EnableOutput();
 	m_unit = unit;
 	m_server_ip = ip;
 	m_server_port = port;
@@ -121,8 +123,17 @@ bool CTcpClient::DispatchRequest(CRequest *request)
 	}
 
 	m_requests.push(request);
+	if(NULL != GetOwner())
+	{
+		GetOwner()->Active();
+	}
 	m_req_mutex.UnLock();
 	return true;
+}
+
+bool CTcpClient::DoSomething()
+{
+	return Reconnect();
 }
 
 void CTcpClient::HangupNotify()
@@ -177,6 +188,13 @@ void CTcpClient::InputNotify()
 		}
 	}
 
+	EnableOutput();
+	GetOwner()->ModifyEvent(this);
+	if(m_requests.empty())
+	{
+		GetOwner()->Suspend();
+	}
+	
 	if(true == is_need_close_connect)
 	{
 		ErrorNotify();
@@ -205,12 +223,20 @@ bool CTcpClient::Reconnect()
 		return false;
 	}
 
+	EnableInput();
+	EnableOutput();
+	
 	if(false == m_unit->AttachClient(this))
 	{
 		Close();
 		return false;
 	}
 
+	if(m_requests.empty())
+	{
+		GetOwner()->Suspend();
+	}
+	
 	return true;
 }
 
@@ -221,8 +247,9 @@ void CTcpClient::ErrorNotify()
 		ResponseError(FC_NETWORK_ERROR);
 	}
 	
-	m_owner->Suspend();
-	m_owner->DetachUnit(this);
+	//GetOwner()->Suspend();
+	GetOwner()->AttachPreUnit(this);
+	GetOwner()->DetachUnit(this);
 	Close();
 	ResetData();
 }

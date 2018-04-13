@@ -67,6 +67,12 @@ namespace Network
 		}
 	}
 
+	int32_t CPollPool::AttachPreUnit(CPollUnit *unit)
+	{
+		m_poll_pres.push_back(unit);
+		return 0;
+	}
+
 	int32_t CPollPool::AttachUnit(CPollUnit *unit)
 	{
 		if(m_poll_units.size() >= m_epoll_size || NULL == unit)
@@ -147,6 +153,27 @@ namespace Network
 	int32_t CPollPool::ModifyEvent(CPollUnit *unit)
 	{
 		return EpollCtl(EPOLL_CTL_MOD, unit);
+	}
+
+	int32_t CPollPool::DoOtherSomething()
+	{
+		for(std::list<CPollUnit *>::iterator pit = m_poll_pres.begin(); pit != m_poll_pres.end();)
+		{
+			CPollUnit *pre_unit = (*pit);
+			if(NULL != pre_unit)
+			{
+				if(true == pre_unit->DoSomething())
+				{
+					pit = m_poll_pres.erase(pit);
+				}
+			}
+			else
+			{
+				pit = m_poll_pres.erase(pit);
+			}
+		}
+
+		return 0;
 	}
 
 	int32_t CPollPool::EpollProcess(int32_t timeout /* = 3000 */)

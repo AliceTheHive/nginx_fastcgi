@@ -27,6 +27,7 @@ public:
 	bool DispatchRequest(CRequest *request);
 
 public:
+	virtual bool DoSomething();
 	virtual void HangupNotify();
 	virtual void RDHupNotify();
 	virtual void InputNotify();
